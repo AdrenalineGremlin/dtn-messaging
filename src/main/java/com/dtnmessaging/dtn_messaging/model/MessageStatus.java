@@ -1,5 +1,6 @@
 package com.dtnmessaging.dtn_messaging.model;
 
-public class MessageStatus {
-
+public enum MessageStatus {
+    PENDING,
+    SYNCED;
 }
