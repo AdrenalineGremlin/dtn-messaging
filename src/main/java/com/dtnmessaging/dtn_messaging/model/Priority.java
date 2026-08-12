@@ -1,5 +1,7 @@
 package com.dtnmessaging.dtn_messaging.model;
 
-public class Priority {
-
+public enum Priority {
+    LOW,
+    MEDIUM,
+    HIGH;
 }
