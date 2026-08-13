@@ -20,13 +20,16 @@ import lombok.Setter;
 @Entity
 public class Message {
     private @Id @GeneratedValue UUID id;
+    // used as a shared identifier that two messages carry
     private UUID logicalID;
+    // what node has or created version
     private UUID nodeID;
     private String content;
     @Enumerated(EnumType.STRING)
     private MessageStatus status;
     @Enumerated(EnumType.STRING)
     private Priority priority;
+    // last write is what gets read
     private Instant lastModified;
 
 }
