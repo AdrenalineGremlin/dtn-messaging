@@ -22,14 +22,14 @@ public class Message {
     private @Id @GeneratedValue UUID id;
     // used as a shared identifier that two messages carry
     private UUID logicalID;
-    // what node has or created version
+    // what node holds version
     private UUID nodeID;
     private String content;
     @Enumerated(EnumType.STRING)
     private MessageStatus status;
     @Enumerated(EnumType.STRING)
     private Priority priority;
-    // last write is what gets read
+    // timestamp resolves conflicts and the most recent is what gets through
     private Instant lastModified;
 
 }
