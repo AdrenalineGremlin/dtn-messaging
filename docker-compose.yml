@@ -1,0 +1,36 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: dtn-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: dtn_messaging
+      POSTGRES_USER: dtn_admin
+      POSTGRES_PASSWORD: change_me_locally
+    ports:
+      - "5433:5432"
+    volumes:
+      - dtn-postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U dtn_admin -d dtn_messaging"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: dtn-app
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "8082:8082"
+    environment:
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/dtn_messaging
+      SPRING_DATASOURCE_USERNAME: dtn_admin
+      SPRING_DATASOURCE_PASSWORD: change_me_locally
+
+volumes:
+  dtn-postgres-data:

@@ -1,6 +1,7 @@
 package com.dtnmessaging.dtn_messaging.service;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.UUID;
 
 import org.springframework.stereotype.Service;
@@ -21,6 +22,10 @@ public class MessageService {
         Message message = new Message(null, freshId, nodeID, content, MessageStatus.PENDING, priority, Instant.now());
         // save in repository and return
         return messageRepository.save(message);
+    }
+
+    public List<Message> findMessageByNode(UUID nodeId) {
+        return messageRepository.findByNodeID(nodeId);
     }
 
     public MessageService(MessageRepository messageRepository) {

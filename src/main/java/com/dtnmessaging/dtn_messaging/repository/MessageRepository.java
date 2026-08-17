@@ -14,4 +14,6 @@ public interface MessageRepository extends JpaRepository<Message, UUID> {
 
     // list instead of optional - logicalid to be shared by many messages
     List<Message> findByLogicalID(UUID logicalID);
+
+    List<Message> findByNodeID(UUID nodeID);
 }
