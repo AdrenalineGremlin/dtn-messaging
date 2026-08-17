@@ -1,0 +1,110 @@
+# DTN Messaging
+
+A Java/Spring Boot implementation of disruption-tolerant networking (DTN) — a store-and-forward messaging system built for environments where devices can't assume a stable, always-on connection (satellite links, field units, remote/contested networks).
+
+
+
+## Archeticture
+
+```
+controller/   - handles HTTP requests, no logic
+service/      - SyncService (the actual sync + conflict resolution logic), MessageService (queuing new messages)
+repository/   - Spring Data JPA interfaces
+model/        - Message, Node entities + MessageStatus/Priority enums
+DTO/          - MessageRequest, the shape used to queue a new message
+```
+
+Basic flow: a message gets queued locally as `PENDING`, tied to a specific node → the node's connectivity gets toggled "online" → a sync gets triggered for that node → `SyncService` checks for conflicts (other messages sharing the same `logicalId`) → resolves them (last write wins) → marks the winner `SYNCED` and any losers `SUPERSEDED`.
+
+## Decisions 
+
+- **Conflict resolution is simplified to "last write wins"** (timestamp comparison), not full vector clocks
+- **Losing messages get marked `SUPERSEDED`, not deleted.** Keeps a record that a conflict happened and what lost — more transparent and auditable than silently dropping data.
+- **`logicalId` is separate from each message's own database `id`.** The `id` is unique per row; `logicalId` is what ties together multiple competing versions of "the same" message across nodes. Without this distinction, there'd be no way to detect a conflict at all.
+- **A node's connectivity is just a toggleable boolean**, not real networking. This is a simplification to make network partition simulation demoable through a simple API call, instead of building actual network fault injection.
+- **No authentication.** This project is scoped around the DTN/conflict-resolution problem specifically, not access control — that's what the MLS Engine project already covers.
+
+## Stack
+
+Java 21, Spring Boot, Spring Data JPA, PostgreSQL, Lombok, Docker Compose, JUnit 5, Mockito.
+
+## Running it
+
+Needs Docker Desktop.
+
+```bash
+docker-compose up --build
+```
+
+Starts Postgres and the app together. API runs on `http://localhost:8082`.
+
+## Endpoints
+
+| Method | Endpoint | What it does |
+|---|---|---|
+| POST | `/nodes?name={name}` | Creates a node |
+| PUT | `/nodes/{id}/toggle` | Flips a node's connectivity (simulates going online/offline) |
+| POST | `/messages` | Queues a new message on a node |
+| POST | `/messages/{nodeId}/sync` | Triggers a sync attempt for a node |
+| GET | `/messages/{nodeId}` | Views all messages for a node |
+
+## Demo
+
+1. Create Node A
+
+POST http://localhost:8082/nodes?name=NodeA
+
+(no body needed — save the returned id)
+
+2. Create Node B
+
+POST http://localhost:8082/nodes?name=NodeB
+
+(same as above — save its id too)
+
+3. Queue a message on Node A (no logicalId — generates a fresh one)
+
+POST http://localhost:8082/messages
+Body (raw, JSON):
+{
+  "content": "Original version from Node A",
+  "nodeId": "<Node A's id>",
+  "priority": "MEDIUM"
+}
+
+Save the returned logicalID.
+
+4. Queue a competing message on Node B, reusing Node A's logicalID — this simulates Node B editing "the same" message while disconnected
+
+POST http://localhost:8082/messages
+Body (raw, JSON):
+{
+  "content": "Edited version from Node B",
+  "nodeId": "<Node B's id>",
+  "priority": "MEDIUM",
+  "logicalId": "<the logicalID from step 3>"
+}
+
+5. Toggle both nodes online
+
+PUT http://localhost:8082/nodes/<Node A's id>/toggle
+PUT http://localhost:8082/nodes/<Node B's id>/toggle
+
+6. Trigger sync on both nodes
+
+POST http://localhost:8082/messages/<Node A's id>/sync
+POST http://localhost:8082/messages/<Node B's id>/sync
+
+7. View each node's messages and check the result
+
+GET http://localhost:8082/messages/<Node A's id>
+GET http://localhost:8082/messages/<Node B's id>
+
+## Tests
+
+`SyncServiceTest` covers the offline guard (sync doesn't touch messages if the node isn't connected) and the core conflict resolution logic (the newer message wins, the older one gets superseded) — both using Mockito to isolate `SyncService` from the database.
+
+## To do
+
+- No endpoint yet to specify message priority ordering during sync (priority field exists on `Message` but `SyncService` doesn't yet use it to process a backlog in priority order)
+- Failures currently throw generic exceptions rather than typed ones mapped to specific HTTP status codes
