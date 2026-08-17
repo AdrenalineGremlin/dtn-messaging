@@ -15,11 +15,11 @@ import com.dtnmessaging.dtn_messaging.repository.MessageRepository;
 public class MessageService {
     private final MessageRepository messageRepository;
 
-    public Message createMessage(String content, UUID nodeID, Priority priority) {
+    public Message createMessage(String content, UUID nodeID, Priority priority, UUID givenLogicalId) {
         // generate fresh id with randomuuid
-        UUID freshId = UUID.randomUUID();
+        UUID logicalId = (givenLogicalId != null) ? givenLogicalId : UUID.randomUUID();
         // create the message
-        Message message = new Message(null, freshId, nodeID, content, MessageStatus.PENDING, priority, Instant.now());
+        Message message = new Message(null, logicalId, nodeID, content, MessageStatus.PENDING, priority, Instant.now());
         // save in repository and return
         return messageRepository.save(message);
     }

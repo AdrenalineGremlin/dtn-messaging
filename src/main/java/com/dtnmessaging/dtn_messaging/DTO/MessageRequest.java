@@ -13,4 +13,5 @@ public class MessageRequest {
     private String content;
     private UUID nodeId;
     private Priority priority;
+    private UUID logicalId;
 }

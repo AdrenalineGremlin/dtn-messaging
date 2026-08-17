@@ -24,7 +24,7 @@ public class SyncService {
             return;
         }
         // fetch pending messages for current node
-        List<Message> messages = messageRepository.findByNodeIdAndStatus(nodeID, MessageStatus.PENDING);
+        List<Message> messages = messageRepository.findByNodeIDAndStatus(nodeID, MessageStatus.PENDING);
 
         for (Message m : messages) {
             // check if ther are any messages sharing the same logicalId
